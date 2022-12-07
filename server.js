@@ -2,18 +2,47 @@ import express from "express";
 import mongoose, { mongo } from "mongoose";
 import Messages from "./dbMessages.js";
 import Cors from "cors";
+import Pusher from "pusher";
 
 //App config
 const app = express();
 const port = process.env.PORT || 9000;
 const connection_url =
   "mongodb+srv://cuadchris:1990112@cluster0.4eenzha.mongodb.net/?retryWrites=true&w=majority";
+const pusher = new Pusher({
+  appId: "1521275",
+  key: "0b050d35b8ed03689cee",
+  secret: "c2b1ca8e91bd5e64cf17",
+  cluster: "us2",
+  useTLS: true,
+});
 //Middleware
 app.use(express.json());
 app.use(Cors());
 //DB config
 mongoose.connect(connection_url);
 //API Endpoints
+const db = mongoose.connection;
+db.once("open", () => {
+  console.log("DB Connected");
+  const msgCollection = db.collection("messagingmessages");
+  const changeStream = msgCollection.watch();
+  changeStream.on("change", (change) => {
+    console.log(change);
+    if (change.operationType === "insert") {
+      const messageDetails = change.fullDocument;
+      pusher.trigger("messages", "inserted", {
+        name: messageDetails.name,
+        message: messageDetails.message,
+        timestamp: messageDetails.timestamp,
+        received: messageDetails.received,
+      });
+    } else {
+      console.log("Error trigerring Pusher");
+    }
+  });
+});
+
 app.get("/", (req, res) => {
   res.status(200).send("Hello Chris.");
 });
