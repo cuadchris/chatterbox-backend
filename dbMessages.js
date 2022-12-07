@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const messagingSchema = mongoose.schema({
+const messagingSchema = mongoose.Schema({
   message: String,
   name: String,
   timestamp: String,
